@@ -1,0 +1,388 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. COBPGM.
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT TI001-KSDS ASSIGN TO DD1
+                  ACCESS       IS SEQUENTIAL
+                  ORGANIZATION IS INDEXED
+                  RECORD KEY   IS TI001-KEY
+                  FILE STATUS  IS WS05-FST-TI001.
+           SELECT TI002-KSDS ASSIGN TO DD2
+                  ACCESS       IS RANDOM
+                  ORGANIZATION IS INDEXED
+                  RECORD KEY   IS TI002-KEY
+                  FILE STATUS  IS WS05-FST-TI002.
+           SELECT TO001-PS
+                  ASSIGN TO DD3
+                  ORGANIZATION  IS   SEQUENTIAL
+                  ACCESS        IS   SEQUENTIAL
+                  FILE STATUS   IS  WS05-FST-TO001.
+       DATA DIVISION.
+       FILE SECTION.
+      *******************MASTER PREMIUM VSAM LAYOUT******************
+       FD TI001-KSDS.
+       01 TI001-KSDS-REC.
+           05 TI001-KEY.
+              10 TI001-HOL-ID PIC X(05).
+              10 TI001-POL-ID PIC X(05).
+           05 F               PIC X(01).
+           05 TI001-POL-CODE  PIC X(10).
+           05 F               PIC X(01).
+           05 TI001-RECEIVED-DATE PIC X(10).
+           05 F               PIC X(01).
+           05 TI001-PRE-AMT   PIC X(10).
+           05 F               PIC X(37).
+      ******************MASTER CUSTOMER VSAM LAYOUT***************
+       FD TI002-KSDS.
+       01 TI002-KSDS-REC.
+           05 TI002-KEY.
+              10 TI002-HOL-ID PIC X(05).
+              10 TI002-POL-ID PIC X(05).
+           05 F               PIC X(01).
+           05 TI002-DOB       PIC X(10).
+           05 F               PIC X(01).
+           05 TI002-AGE-CODE  PIC X(05).
+           05 F               PIC X(53).
+      *******************HISTORY LAYOUT PS*******************
+       FD TO001-PS.
+       01 TO001-PS-REC.
+          05 TO001-ID                  PIC X(05).
+          05 FILLER                    PIC X(01).
+          05 TO001-NAME                PIC X(10).
+          05 FILLER                    PIC X(01).
+          05 TO001-PH-NUM              PIC X(12).
+          05 FILLER                    PIC X(01).
+          05 TO001-POL-NUMBER          PIC X(10).
+          05 FILLER                    PIC X(01).
+          05 TO001-POL-AMOUNT          PIC X(10).
+          05 FILLER                    PIC X(01).
+          05 TO001-POL-START-DATE      PIC X(10).
+          05 FILLER                    PIC X(01).
+          05 TO001-AGENT-CODE          PIC X(5).
+          05 FILLER                    PIC X(12).
+       WORKING-STORAGE SECTION.
+      **************** VARIABLE DECLARATION ************************
+       01 WS01-VARS.
+           05 WS05-FST-TI001   PIC 9(02).
+           05 WS05-FST-TI002   PIC 9(02).
+           05 WS05-FST-TO001   PIC 9(02).
+           05 WS05-FORMATTED-PREM-AMT PIC 9(11).99.
+           05 WS05-SQLCODE     PIC S9(03) SIGN LEADING SEPARATE.
+           05 WS05-SQL-LRECL   PIC S9(09) COMP VALUE 80.
+           05 WS05-SQL-ERR.
+              10 WS05-SQL-LEN  PIC S9(04) COMP VALUE 800.
+              10 WS05-SQL-TXT  PIC X(80) OCCURS 10 TIMES.
+      ********************* DCLGEN MEMBERS***************************
+           EXEC SQL
+               INCLUDE SQLCA
+           END-EXEC.
+           EXEC SQL
+               INCLUDE PREMIUM
+           END-EXEC.
+           EXEC SQL
+               INCLUDE HISTORY
+           END-EXEC.
+           EXEC SQL
+               INCLUDE HOLDER
+           END-EXEC.
+           EXEC SQL
+               INCLUDE AGENT
+           END-EXEC.
+      ***************************************************************
+       PROCEDURE DIVISION.
+       0000-MAIN-PARA.
+           PERFORM 1000-INIT-PARA
+           PERFORM 3000-PROC-PARA
+              THRU 3000-PROC-PARA-EXIT
+           PERFORM 9000-TERM-PARA
+           .
+       1000-INIT-PARA.
+           CONTINUE
+           .
+       9000-TERM-PARA.
+           STOP RUN
+           .
+       3000-PROC-PARA.
+           PERFORM 3100-OPEN-PARA
+              THRU 3100-OPEN-PARA-EXIT
+           PERFORM 3200-READ-PARA
+              THRU 3200-READ-PARA-EXIT
+             UNTIL WS05-FST-TI001 = 10
+           PERFORM 3300-CLOS-PARA
+              THRU 3300-CLOS-PARA-EXIT
+           .
+       3000-PROC-PARA-EXIT.
+           EXIT
+           .
+      *********************OPENING FILES******************************
+       3100-OPEN-PARA.
+      *************OPENING MASTER PREMIUM VSAM************************
+           OPEN I-O TI001-KSDS
+           EVALUATE TRUE
+           WHEN WS05-FST-TI001 = 00
+               DISPLAY 'MASTER PREMIUM VSAM OPENED'
+           WHEN OTHER
+               DISPLAY 'MASTER PREMIUM VSAM OPEN FAILED'
+               PERFORM 9000-TERM-PARA
+           END-EVALUATE
+      ***************OPENING CUSTOMER VSAM*****************************
+           OPEN I-O TI002-KSDS
+           EVALUATE TRUE
+           WHEN WS05-FST-TI002 = 00
+               DISPLAY 'MASTER CUSTOMER VSAM OPENED'
+           WHEN OTHER
+               DISPLAY 'MASTER CUSTOMER VSAM OPEN FAILED'
+               PERFORM 9000-TERM-PARA
+           END-EVALUATE
+      ******************OPENING HISTORY PS**************************
+           OPEN OUTPUT TO001-PS
+           EVALUATE TRUE
+           WHEN WS05-FST-TO001 = 00
+                DISPLAY 'TO001 OPENED'
+           WHEN OTHER
+                DISPLAY 'TO001 OPEN FAILED ' WS05-FST-TO001
+                PERFORM 9000-TERM-PARA
+           END-EVALUATE
+           .
+       3100-OPEN-PARA-EXIT.
+           EXIT
+           .
+      *******************READING FILES********************************
+       3200-READ-PARA.
+           MOVE SPACES TO TI001-KSDS-REC TI002-KSDS-REC TO001-PS-REC
+           READ TI001-KSDS
+           EVALUATE TRUE
+           WHEN WS05-FST-TI001 = 00
+               DISPLAY TI001-HOL-ID ' RECORD IS CHECKING'
+               PERFORM 3210-FETCH-PARA
+                  THRU 3210-FETCH-PARA-EXIT
+               PERFORM 3220-CHECK-PARA
+                  THRU 3220-CHECK-PARA-EXIT
+           WHEN WS05-FST-TI001 = 10
+               DISPLAY 'END OF FILE'
+           WHEN OTHER
+               DISPLAY 'READ FAILED' WS05-FST-TI001
+           END-EVALUATE
+           MOVE TI001-HOL-ID TO TI002-HOL-ID
+           MOVE TI001-POL-ID TO TI002-POL-ID
+           READ TI002-KSDS
+           EVALUATE TRUE
+           WHEN WS05-FST-TI002 = 00
+           DISPLAY 'CUSTOMER VSAM FILE READ SUCCESSFULLY'
+           WHEN WS05-FST-TI002 = 10
+               DISPLAY 'END OF FILE'
+           WHEN OTHER
+           DISPLAY 'READ FAILED' WS05-FST-TI002
+           END-EVALUATE
+           .
+       3200-READ-PARA-EXIT.
+           EXIT
+           .
+      *FETCHING HOLDER & AGENT TB DATAS FOR HISTORY TB IN HOST VARIABLES
+       3210-FETCH-PARA.
+           MOVE TI001-HOL-ID TO HV1-HOLDER-ID
+           MOVE TI001-POL-ID TO HV1-POLICY-ID
+           EXEC SQL
+               SELECT
+                      H.HOLDER_ID,
+                      H.HOLDER_NAME,
+                      H.STREET,
+                      H.CITY,
+                      H.STATE,
+                      H.PIN_CODE,
+                      H.PHONE_NUMBER,
+                      H.POLICY_NUMBER,
+                      H.POLICY_AMOUNT,
+                      H.START_DATE,
+                      A.AGENT_CODE
+               INTO
+                   :HV1-HOLDER-ID,
+                      :HV1-HOLDER-NAME,
+                      :HV1-STREET,
+                      :HV1-CITY,
+                      :HV1-STATE,
+                      :HV1-PIN-CODE,
+                      :HV1-PHONE-NUMBER,
+                      :HV1-POLICY-NUMBER,
+                      :HV1-POLICY-AMOUNT,
+                      :HV1-START-DATE,
+                      :HV1-AGENT-CODE
+               FROM HOLDER AS H
+               JOIN AGENT AS A
+               ON A.AGENT_CODE = H.AGENT_CODE
+               WHERE HOLDER_ID = :HV1-HOLDER-ID AND
+                     POLICY_ID = :HV1-POLICY-ID
+           END-EXEC.
+           EVALUATE TRUE
+           WHEN SQLCODE = 000
+               DISPLAY TI001-HOL-ID ' RECORD IS FETCHED'
+           WHEN SQLCODE = +100
+               DISPLAY 'RECORD NOT FOUND'
+           WHEN OTHER
+               MOVE SQLCODE TO WS05-SQLCODE
+               DISPLAY 'SELECT OPERATION FAILED ' WS05-SQLCODE
+               PERFORM ERR-PARA
+                  THRU ERR-PARA-EXIT
+           END-EVALUATE
+           .
+       3210-FETCH-PARA-EXIT.
+           EXIT
+           .
+      *CHECKING BALANCE AMOUNT IS 0 IN PREMIUM TABLE
+       3220-CHECK-PARA.
+           MOVE TI001-HOL-ID TO HV2-HOLDER-ID
+           MOVE TI001-POL-ID TO HV2-POLICY-ID
+           EXEC SQL
+               SELECT
+                     HOLDER_ID
+               INTO
+                     :HV2-HOLDER-ID
+               FROM PREMIUM
+               WHERE HOLDER_ID = :HV2-HOLDER-ID AND
+                     POLICY_ID = :HV2-POLICY-ID AND
+                     BALANCE_AMOUNT = '0,000,000,000'
+           END-EXEC.
+           EVALUATE TRUE
+           WHEN SQLCODE = 000
+      *IF BAL AMNT IS 0 THEN ACCOUNT IS MATURED =>PERFORMING INSERT PARA
+               DISPLAY TI001-HOL-ID ' THE ACCOUNT IS MATURED'
+               PERFORM 3221-INSERT-PARA
+                  THRU 3221-INSERT-PARA-EXIT
+               PERFORM 3222-WRITE-PARA
+                  THRU 3222-WRITE-PARA-EXIT
+           WHEN SQLCODE = +100
+               DISPLAY 'RECORD IS NOT FOUND'
+           WHEN OTHER
+               MOVE SQLCODE TO WS05-SQLCODE
+               DISPLAY 'SELECT OPERATION FAILED ' WS05-SQLCODE
+               PERFORM ERR-PARA
+                  THRU ERR-PARA-EXIT
+           END-EVALUATE
+           .
+       3220-CHECK-PARA-EXIT.
+           EXIT
+           .
+      *CONCATENATING ADDRESS AND INSERTING IN HISTORY TABLE
+       3221-INSERT-PARA.
+           MOVE HV1-HOLDER-ID     TO HV3-HOLDER-ID
+           MOVE HV1-HOLDER-NAME   TO HV3-HOLDER-NAME
+           MOVE HV1-PHONE-NUMBER  TO HV3-HOLDER-PHONE-NUMBER
+           MOVE HV1-POLICY-NUMBER TO HV3-POLICY-NUMBER
+           MOVE HV1-POLICY-AMOUNT TO HV3-POLICY-AMOUNT
+           MOVE HV1-START-DATE    TO HV3-POLICY-START-DATE
+           MOVE HV1-AGENT-CODE     TO HV3-AGENT-CODE
+           EXEC SQL
+               INSERT INTO HISTORY
+                VALUES(:HV3-HOLDER-ID, :HV3-HOLDER-NAME,
+                       :HV3-HOLDER-PHONE-NUMBER,
+                       :HV3-POLICY-NUMBER,
+                       :HV3-POLICY-AMOUNT,:HV3-POLICY-START-DATE,
+                       :HV3-AGENT-CODE)
+           END-EXEC.
+           EVALUATE TRUE
+           WHEN SQLCODE = 000
+               DISPLAY HV1-HOLDER-ID 'RECORD IS INSERTED'
+               PERFORM 32211-DELETE-PARA
+                  THRU 32211-DELETE-PARA-EXIT
+           WHEN OTHER
+               MOVE SQLCODE TO WS05-SQLCODE
+               DISPLAY HV1-HOLDER-ID 'RECORD INSERTION FAILED '
+                       WS05-SQLCODE
+               PERFORM ERR-PARA
+                  THRU ERR-PARA-EXIT
+           END-EVALUATE
+           .
+       3221-INSERT-PARA-EXIT.
+           EXIT
+           .
+       3222-WRITE-PARA.
+           MOVE HV3-HOLDER-ID               TO TO001-ID
+           MOVE HV3-HOLDER-NAME             TO TO001-NAME
+           MOVE HV3-HOLDER-PHONE-NUMBER     TO TO001-PH-NUM
+           MOVE HV3-POLICY-NUMBER           TO TO001-POL-NUMBER
+           MOVE HV3-POLICY-AMOUNT           TO TO001-POL-AMOUNT
+           MOVE HV3-POLICY-START-DATE       TO TO001-POL-START-DATE
+           MOVE HV3-AGENT-CODE              TO TO001-AGENT-CODE
+           WRITE TO001-PS-REC
+           EVALUATE TRUE
+           WHEN WS05-FST-TO001 = 00
+                DISPLAY ' RECORDS WRITTEN '
+           WHEN OTHER
+                DISPLAY ' WRITE FAILED ' WS05-FST-TO001
+           END-EVALUATE
+           .
+       3222-WRITE-PARA-EXIT.
+           EXIT
+           .
+      *DELETING RECORD IN BOTH VSAM DATASETS,PREMIUM & HOLDER TB
+       32211-DELETE-PARA.
+           DELETE TI001-KSDS
+           EVALUATE TRUE
+           WHEN WS05-FST-TI001 = 00
+                DISPLAY 'MASTER PREMIUM VSAM DELETED'
+           WHEN OTHER
+                DISPLAY 'MASTER PREMIUM VSAM DELETE FAILED '
+                         WS05-FST-TI001
+           END-EVALUATE
+           MOVE TI001-HOL-ID TO TI002-HOL-ID
+           MOVE TI001-POL-ID TO TI002-POL-ID
+           DELETE TI002-KSDS
+           EVALUATE TRUE
+           WHEN WS05-FST-TI002 = 00
+                DISPLAY 'MASTER CUSTOMER VSAM DELETED'
+           WHEN OTHER
+                DISPLAY 'MASTER CUSTOMER VSAM DELETE FAILED '
+                        WS05-FST-TI002
+           END-EVALUATE
+           EXEC SQL
+           DELETE FROM PREMIUM
+               WHERE HOLDER_ID = :HV1-HOLDER-ID
+           END-EXEC.
+           EVALUATE TRUE
+           WHEN SQLCODE = 000
+               DISPLAY 'PREMIUM TABLE RECORD DELETED'
+           WHEN OTHER
+               MOVE SQLCODE TO WS05-SQLCODE
+               DISPLAY 'PREMIUM TABLE RECORD DELETION FAILED '
+                       WS05-SQLCODE
+               PERFORM ERR-PARA
+                  THRU ERR-PARA-EXIT
+           END-EVALUATE
+           EXEC SQL
+               DELETE FROM HOLDER
+               WHERE HOLDER_ID = :HV1-HOLDER-ID
+           END-EXEC.
+           EVALUATE TRUE
+           WHEN SQLCODE = 000
+               DISPLAY 'HOLDER TABLE RECORD DELETED'
+           WHEN OTHER
+               MOVE SQLCODE TO WS05-SQLCODE
+               DISPLAY 'HOLDER TB RECORD DELETION FAILED '
+                       WS05-SQLCODE
+               PERFORM ERR-PARA
+                  THRU ERR-PARA-EXIT
+           END-EVALUATE
+           .
+       32211-DELETE-PARA-EXIT.
+           EXIT
+           .
+      *CLOSING BOTH VSAM DATASETS
+       3300-CLOS-PARA.
+           CLOSE TI001-KSDS TI002-KSDS TO001-PS
+           .
+       3300-CLOS-PARA-EXIT.
+           EXIT
+           .
+      *ERROR PARA TO DISPLAY SQL ERROR CODES
+       ERR-PARA.
+           CALL 'DSNTIAR' USING SQLCA WS05-SQL-ERR WS05-SQL-LRECL
+           DISPLAY WS05-SQL-ERR
+           .
+       ERR-PARA-EXIT.
+           EXIT
+           .
+
+
+
+

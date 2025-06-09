@@ -1,0 +1,33 @@
+//TECN020R JOB NOTIFY=&SYSUID                                           00010000
+//STEP001  EXEC PGM=IDCAMS                                              00020000
+//SYSPRINT DD SYSOUT=*                                                  00030000
+//SYSUT1   DD DSN=TECN020.PROJ.MASTER.PREMIUM.VSAM.KSDS,DISP=SHR        00040001
+//SYSUT2   DD DSN=TECN020.PROJ.MASTER.PREMIUM.GDG(+1),                  00050007
+//            DISP=(NEW,CATLG,DELETE),                                  00060002
+//            SPACE=(TRK,(10,10)),                                      00070002
+//            VOLUME=SER=ZAPRD6,                                        00080000
+//            DCB=(LRECL=80,BLKSIZE=800,RECFM=FB)                       00090001
+//SYSIN DD *                                                            00100007
+   REPRO INFILE(SYSUT1) OUTFILE(SYSUT2)                                 00100107
+/*                                                                      00101007
+//STEP002  EXEC PGM=IDCAMS                                              00110006
+//SYSPRINT DD SYSOUT=*                                                  00120002
+//SYSUT1   DD DSN=TECN020.PROJ.MASTER.CUSTOMER.VSAM.KSDS,DISP=SHR       00130003
+//SYSUT2   DD DSN=TECN020.PROJ.MASTER.CUSTOMER.GDG(+1),                 00140007
+//            DISP=(NEW,CATLG,DELETE),                                  00150002
+//            SPACE=(TRK,(10,10)),                                      00160002
+//            VOLUME=SER=ZAPRD6,                                        00170002
+//            DCB=(LRECL=80,BLKSIZE=800,RECFM=FB)                       00180003
+//SYSIN DD *                                                            00190007
+  REPRO INFILE(SYSUT1) OUTFILE(SYSUT2)                                  00191007
+/*                                                                      00192007
+//STEP003  EXEC PGM=IEBGENER                                            00200006
+//SYSPRINT DD SYSOUT=*                                                  00210003
+//SYSUT1   DD DSN=TECN020.PROJ.HISTORY.DATA,DISP=SHR                    00220003
+//SYSUT2   DD DSN=TECN020.PROJ.HISTORY.DATA.GDG(+1),                    00230007
+//            DISP=(NEW,CATLG,DELETE),                                  00240003
+//            SPACE=(TRK,(1,1)),                                        00250003
+//            VOLUME=SER=ZAPRD6,                                        00260003
+//            DCB=(LRECL=80,BLKSIZE=800,RECFM=FB)                       00270003
+//SYSIN    DD DUMMY                                                     00280003
+

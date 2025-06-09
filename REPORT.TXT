@@ -1,0 +1,287 @@
+       IDENTIFICATION DIVISION.                                         00010006
+       PROGRAM-ID. REPPGM.                                              00020001
+       ENVIRONMENT DIVISION.                                            00030001
+       INPUT-OUTPUT SECTION.                                            00040001
+       FILE-CONTROL.                                                    00050001
+           SELECT TI001-PS                                              00051001
+                  ASSIGN TO DD1                                         00051101
+                  ACCESS IS SEQUENTIAL                                  00052008
+                  ORGANIZATION IS SEQUENTIAL                            00053001
+                  FILE STATUS IS WS05-FST-TI001.                        00054001
+           SELECT TO001-PS                                              00060008
+                  ASSIGN TO DD2                                         00061001
+                  ACCESS IS SEQUENTIAL                                  00070001
+                  ORGANIZATION IS SEQUENTIAL                            00080001
+                  FILE STATUS IS WS05-FST-TO001.                        00090001
+       DATA DIVISION.                                                   00100001
+       FILE SECTION.                                                    00110001
+       FD TI001-PS.                                                     00111107
+       01 TI001-PS-REC.                                                 00111207
+          05 TI001-ID                  PIC X(05).                       00111307
+          05 FILLER                    PIC X(01).                       00111402
+          05 TI001-NAME                PIC X(10).                       00111507
+          05 FILLER                    PIC X(01).                       00111602
+          05 TI001-PH-NUM              PIC X(12).                       00111707
+          05 FILLER                    PIC X(01).                       00111802
+          05 TI001-POL-NUMBER          PIC X(10).                       00111907
+          05 FILLER                    PIC X(01).                       00112002
+          05 TI001-POL-AMOUNT          PIC X(10).                       00112107
+          05 FILLER                    PIC X(01).                       00112202
+          05 TI001-POL-START-DATE      PIC X(10).                       00112307
+          05 FILLER                    PIC X(01).                       00112402
+          05 TI001-AGENT-CODE          PIC X(5).                        00112507
+          05 FILLER                    PIC X(12).                       00112604
+       FD TO001-PS.                                                     00120001
+       01 TO001-PS-REC.                                                 00130001
+          05 TO001-HOLDER-ID           PIC X(05).                       00140001
+          05 F                         PIC X(01).                       00150001
+          05 TO001-HOLDER-NAME         PIC X(10).                       00160001
+          05 F                         PIC X(01).                       00170001
+          05 TO001-POLICY-AMT          PIC X(10).                       00180023
+          05 F                         PIC X(01).                       00190001
+          05 TO001-START-DATE          PIC X(10).                       00200019
+          05 F                         PIC X(42).                       00210019
+       WORKING-STORAGE SECTION.                                         00220001
+       01 WS01-VARS.                                                    00230001
+           05 WS05-FST-TO001   PIC 9(02).                               00240001
+           05 WS05-FST-TI001   PIC 9(02).                               00241004
+           05 WS05-SQLCODE     PIC S9(03) SIGN LEADING SEPARATE.        00250001
+           05 WS05-SQL-LRECL   PIC S9(09) COMP VALUE 80.                00260001
+           05 WS05-SQL-ERR.                                             00270001
+              10 WS05-SQL-LEN  PIC S9(04) COMP VALUE 800.               00280001
+              10 WS05-SQL-TXT  PIC X(80) OCCURS 10 TIMES.               00290001
+           05 WS05-REC-COUNT   PIC 9(02).                               00300001
+           05 WS05-LINE-NO     PIC 9(02) VALUE 0.                       00310001
+           05 WS05-DATE-TIME.                                           00320001
+              10 WS10-YEAR     PIC 9(04).                               00330001
+              10 WS10-MONTH    PIC 9(02).                               00340001
+              10 WS10-DATE     PIC 9(02).                               00350001
+              10 WS10-HOUR     PIC 9(02).                               00360001
+              10 WS10-MINS     PIC 9(02).                               00370001
+              10 WS10-SECS     PIC 9(02).                               00380001
+       01 WS01-HEADER-1.                                                00390001
+           05 FILLER                   PIC X(22).                       00400001
+           05 WS05-TITLE               PIC X(29).                       00410015
+           05 FILLER                   PIC X(29).                       00420015
+       01 WS01-HEADER-2A.                                               00430001
+           05 DATEE                    PIC X(07) VALUE 'DATE : '.       00440001
+           05 WS05-DATE                PIC X(10).                       00450001
+           05 FILLER                   PIC X(41).                       00460001
+           05 PAGE-NO                  PIC X(12) VALUE 'PAGE NO :   '.  00470001
+           05 WS05-PAGE-NO             PIC 9(02) VALUE 0.               00480001
+           05 FILLER                   PIC X(08).                       00490001
+       01 WS01-HEADER-2B.                                               00500001
+           05 FILLER                   PIC X(58).                       00510001
+           05 PAGE-NO-1                PIC X(12) VALUE 'PAGE NO :   '.  00520001
+           05 WS05-PAGE-NO-1           PIC 9(02).                       00530001
+           05 FILLER                   PIC X(08).                       00540001
+       01 WS01-HEADER-3A.                                               00550001
+           05 TIMEE                    PIC X(07) VALUE 'TIME : '.       00560001
+           05 WS05-TIME                PIC X(08).                       00570001
+           05 FILLER                   PIC X(41).                       00580001
+           05 REPORT-ID          PIC X(16) VALUE 'REPORT ID : 1015'.    00590015
+           05 FILLER             PIC X(08).                             00600001
+       01 WS01-HEADER-3B.                                               00610001
+           05 FILLER             PIC X(56).                             00620001
+           05 REPORT-ID1         PIC X(16) VALUE 'REPORT ID : 1015'.    00630004
+           05 FILLER             PIC X(08).                             00640001
+       01 WS01-HEADER-4.                                                00650001
+           05 SYMBOL-1           PIC X(72) VALUE ALL '-'.               00660001
+           05 FILLER             PIC X(08).                             00670001
+       01 WS01-HEADER-5.                                                00680001
+           05 TITLE-1            PIC X(09) VALUE 'HOLDER ID'.           00690001
+           05 FILLER             PIC X(05).                             00700017
+           05 TITLE-2            PIC X(11) VALUE 'HOLDER NAME'.         00710007
+           05 FILLER             PIC X(05).                             00720017
+           05 TITLE-3            PIC X(10) VALUE 'POLICY AMT'.          00730007
+           05 FILLER             PIC X(05).                             00740017
+           05 TITLE-4            PIC X(17) VALUE 'POLICY START DATE'.   00750007
+           05 F                  PIC X(35).                             00760017
+       01 WS01-HEADER-6.                                                00770001
+           05 SYMBOL-2           PIC X(09) VALUE ALL '-'.               00780001
+           05 FILLER             PIC X(05).                             00790018
+           05 SYMBOL-3           PIC X(11) VALUE ALL '-'.               00800018
+           05 FILLER             PIC X(05).                             00810018
+           05 SYMBOL-4           PIC X(10) VALUE ALL '-'.               00820018
+           05 FILLER             PIC X(05).                             00830018
+           05 SYMBOL-5           PIC X(17) VALUE ALL '-'.               00840018
+           05 FILLER             PIC X(05).                             00850018
+       01 WS01-RECORDS.                                                 00860001
+           05 WS05-HOLDER-ID     PIC X(05).                             00870001
+           05 FILLER             PIC X(05).                             00880021
+           05 WS05-HOLDER-NAME   PIC X(10).                             00890001
+           05 FILLER             PIC X(05).                             00900021
+           05 WS05-POLICY-AMOUNT PIC X(10).                             00910023
+           05 FILLER             PIC X(05).                             00920023
+           05 WS05-POLICY-DATE   PIC X(10).                             00921023
+           05 FILLER             PIC X(42).                             00922032
+       01 WS01-FOOTER-1.                                                00950001
+           05 SYMBOL-6           PIC X(31) VALUE ALL '-'.               00960001
+           05 END-OF-PAGES       PIC X(11) VALUE 'END OF PAGE'.         00970001
+           05 SYMBOL-7           PIC X(30) VALUE ALL '-'.               00980001
+           05 FILLER             PIC X(08).                             00990001
+       01 WS01-FOOTER-2.                                                01000001
+           05 SYMBOL-8           PIC X(30) VALUE ALL '*'.               01010001
+           05 END-OF-REPORT      PIC X(13) VALUE 'END OF REPORT'.       01020024
+           05 SYMBOL-9           PIC X(29) VALUE ALL '*'.               01030001
+           05 FILLER             PIC X(08).                             01040001
+       PROCEDURE DIVISION.                                              01220001
+       0000-MAIN-PARA.                                                  01230001
+           PERFORM 1000-INIT-PARA                                       01240001
+           PERFORM 3000-PROC-PARA                                       01250001
+              THRU 3000-PROC-PARA-EXIT                                  01260001
+           PERFORM 9000-TERM-PARA                                       01270001
+           .                                                            01280001
+       1000-INIT-PARA.                                                  01290001
+           CONTINUE                                                     01300001
+           .                                                            01310001
+       3000-PROC-PARA.                                                  01320001
+           PERFORM 3100-OPEN-PARA                                       01330001
+              THRU 3100-OPEN-PARA-EXIT                                  01340001
+           PERFORM 3200-HEADER-PARA                                     01350001
+              THRU 3200-HEADER-PARA-EXIT                                01360001
+           PERFORM 3300-READ-PARA                                       01370004
+              THRU 3300-READ-PARA-EXIT                                  01380004
+                UNTIL WS05-FST-TI001 = 10                               01381016
+           PERFORM 3400-FOOTER-PARA                                     01390001
+              THRU 3400-FOOTER-PARA-EXIT                                01400001
+           PERFORM 3500-CLOS-PARA                                       01410001
+              THRU 3500-CLOS-PARA-EXIT                                  01420001
+           .                                                            01430001
+       3000-PROC-PARA-EXIT.                                             01440001
+           EXIT                                                         01450001
+           .                                                            01460001
+       3100-OPEN-PARA.                                                  01470001
+            OPEN INPUT TI001-PS                                         01471011
+            EVALUATE TRUE                                               01472004
+            WHEN WS05-FST-TI001 = 00                                    01473004
+                DISPLAY 'INPUT PS OPENED'                               01474004
+            WHEN OTHER                                                  01475004
+                DISPLAY 'INPUT PS OPEN FAILED' WS05-FST-TO001           01476004
+                PERFORM 9000-TERM-PARA                                  01477004
+            END-EVALUATE                                                01478004
+           OPEN OUTPUT TO001-PS                                         01480001
+           EVALUATE TRUE                                                01490001
+           WHEN WS05-FST-TO001 = 00                                     01500001
+               DISPLAY 'OUTPUT PS OPENED'                               01510004
+           WHEN OTHER                                                   01520001
+               DISPLAY 'PS OPEN OUTPUT FAILED' WS05-FST-TO001           01530004
+               PERFORM 9000-TERM-PARA                                   01540001
+           END-EVALUATE                                                 01550001
+           .                                                            01560008
+       3100-OPEN-PARA-EXIT.                                             01690001
+           EXIT                                                         01700001
+           .                                                            01710001
+       3200-HEADER-PARA.                                                01720001
+           MOVE 'CHILD INSURANCE DETAIL REPORT'   TO WS05-TITLE         01730004
+           MOVE FUNCTION CURRENT-DATE             TO WS05-DATE-TIME     01740001
+           MOVE WS10-YEAR                         TO WS05-DATE(1:4)     01750004
+           MOVE '/'                               TO WS05-DATE(5:1)     01760001
+           MOVE WS10-MONTH                        TO WS05-DATE(6:2)     01770001
+           MOVE '/'                               TO WS05-DATE(8:1)     01780001
+           MOVE WS10-DATE                         TO WS05-DATE(9:2)     01790001
+           MOVE WS10-HOUR                         TO WS05-TIME(1:2)     01800001
+           MOVE ':'                               TO WS05-TIME(3:1)     01810001
+           MOVE WS10-MINS                         TO WS05-TIME(4:2)     01820004
+           MOVE ':'                               TO WS05-TIME(6:1)     01830001
+           MOVE WS10-SECS                         TO WS05-TIME(7:2)     01840004
+           ADD 1                                  TO WS05-PAGE-NO       01850001
+           WRITE TO001-PS-REC                   FROM WS01-HEADER-1      01860001
+           WRITE TO001-PS-REC                   FROM WS01-HEADER-2A     01870001
+           WRITE TO001-PS-REC                   FROM WS01-HEADER-3A     01880001
+           WRITE TO001-PS-REC                   FROM WS01-HEADER-4      01890001
+           WRITE TO001-PS-REC                   FROM WS01-HEADER-5      01900001
+           WRITE TO001-PS-REC                   FROM WS01-HEADER-6      01910001
+           EVALUATE TRUE                                                01920001
+           WHEN WS05-FST-TO001 = 00                                     01930001
+               DISPLAY 'HEADER WAS WRITTEN'                             01940001
+           WHEN OTHER                                                   01950001
+               DISPLAY 'HEADER WRITE FAILED ' WS05-FST-TO001            01960001
+           END-EVALUATE                                                 01970001
+           .                                                            01980001
+       3200-HEADER-PARA-EXIT.                                           01990001
+           EXIT                                                         02000001
+           .                                                            02010001
+       3300-READ-PARA.                                                  02020004
+            READ TI001-PS                                               02030010
+            EVALUATE TRUE                                               02040004
+            WHEN WS05-FST-TI001 = 00                                    02050008
+                  DISPLAY 'FILE READ SUCCESSFULLY'                      02060004
+                  PERFORM 3311-WRITE-PARA                               02061013
+                    THRU 3311-WRITE-PARA-EXIT                           02062013
+            WHEN WS05-FST-TI001 = 10                                    02070008
+                  DISPLAY 'END OF FILE'                                 02071004
+            WHEN OTHER                                                  02072004
+                  DISPLAY 'READ FAILED' WS05-FST-TI001                  02073010
+            END-EVALUATE                                                02074004
+            .                                                           02075004
+       3300-READ-PARA-EXIT.                                             02080004
+           EXIT                                                         02090001
+           .                                                            02100001
+       3311-WRITE-PARA.                                                 02370001
+           ADD 1                      TO WS05-LINE-NO                   02380004
+           MOVE TI001-ID              TO TO001-HOLDER-ID                02390010
+           MOVE TI001-NAME            TO TO001-HOLDER-NAME              02400010
+           MOVE TI001-POL-START-DATE  TO TO001-START-DATE               02410009
+           MOVE TI001-POL-AMOUNT      TO TO001-POLICY-AMT               02411009
+           MOVE TO001-HOLDER-ID       TO WS05-HOLDER-ID                 02430004
+           MOVE TO001-HOLDER-NAME     TO WS05-HOLDER-NAME               02440004
+           MOVE TO001-START-DATE      TO WS05-POLICY-DATE               02450010
+           MOVE TO001-POLICY-AMT      TO WS05-POLICY-AMOUNT             02451010
+           EVALUATE TRUE                                                02470001
+           WHEN WS05-LINE-NO >= 1 AND WS05-LINE-NO < 9                  02480001
+               WRITE TO001-PS-REC FROM WS01-RECORDS                     02490001
+               ADD 1 TO WS05-REC-COUNT                                  02491014
+               EVALUATE TRUE                                            02500001
+               WHEN WS05-FST-TO001 = 00                                 02510001
+                   DISPLAY 'RECORD ' WS05-REC-COUNT 'WAS WRITTEN'       02520001
+               WHEN OTHER                                               02530001
+                   DISPLAY 'RECORD ' WS05-REC-COUNT ' WAS NOT WRITTEN ' 02540001
+                                                       WS05-FST-TO001   02550001
+               END-EVALUATE                                             02560030
+           WHEN WS05-LINE-NO = 9                                        02570001
+               WRITE TO001-PS-REC FROM WS01-RECORDS                     02580001
+               WRITE TO001-PS-REC FROM WS01-FOOTER-1                    02590032
+                 ADD 1              TO WS05-PAGE-NO                     02600001
+                MOVE WS05-PAGE-NO   TO WS05-PAGE-NO-1                   02610001
+               WRITE TO001-PS-REC FROM WS01-HEADER-2B                   02620001
+               WRITE TO001-PS-REC FROM WS01-HEADER-3B                   02630001
+               WRITE TO001-PS-REC FROM WS01-HEADER-4                    02640001
+               WRITE TO001-PS-REC FROM WS01-HEADER-5                    02650001
+               WRITE TO001-PS-REC FROM WS01-HEADER-6                    02660001
+                MOVE 1              TO WS05-LINE-NO                     02670001
+               EVALUATE TRUE                                            02680012
+               WHEN WS05-FST-TO001 = 00                                 02690001
+                   DISPLAY 'RECORD ' WS05-REC-COUNT ' WAS WRITTEN'      02700001
+               WHEN OTHER                                               02710001
+                   DISPLAY 'RECORD ' WS05-REC-COUNT ' WAS NOT WRITTEN ' 02720001
+                                                         WS05-FST-TO001 02730001
+               END-EVALUATE                                             02740030
+           DISPLAY 'END OF PAGE : ' WS05-PAGE-NO                        02750001
+           END-EVALUATE                                                 02760001
+           .                                                            02770001
+       3311-WRITE-PARA-EXIT.                                            02780001
+           EXIT                                                         02790001
+           .                                                            02800001
+      *3400-FOOTER-PARA.                                                02810033
+      *   WRITE TO001-PS-REC FROM WS01-FOOTER-2                         02821033
+      *    EVALUATE TRUE                                                02830033
+      *    WHEN WS05-FST-TO001 = 00                                     02840033
+      *       DISPLAY 'FOOTER WAS WRITTEN'                              02850033
+      *    WHEN OTHER                                                   02860033
+      *        DISPLAY 'FOOTER WAS NOT WRITTEN ' WS05-FST-TO001         02870033
+      *    END-EVALUATE                                                 02880033
+      *    .                                                            02890033
+      *3400-FOOTER-PARA-EXIT.                                           02900033
+      *    EXIT                                                         02910033
+      *    .                                                            02920033
+       3500-CLOS-PARA.                                                  02930001
+           CLOSE TI001-PS TO001-PS                                      03060005
+           .                                                            03070001
+       3500-CLOS-PARA-EXIT.                                             03080001
+           EXIT                                                         03090001
+           .                                                            03100001
+       9000-TERM-PARA.                                                  03180001
+           STOP RUN                                                     03190001
+           .                                                            03200001
+

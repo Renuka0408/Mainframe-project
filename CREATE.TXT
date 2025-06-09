@@ -1,0 +1,21 @@
+//TECN020A JOB NOTIFY=&SYSUID                                           00010000
+//STEP1    EXEC PGM=IDCAMS                                              00020000
+//SYSPRINT DD SYSOUT=*                                                  00030000
+//SYSIN    DD *                                                         00040000
+  DEFINE GDG (                                     -                    00050001
+              NAME(TECN020.PROJ.MASTER.PREMIUM.GDG) -                   00051001
+              LIMIT(15) -                                               00060000
+              NOEMPTY -                                                 00070000
+              SCRATCH )                                                 00080001
+  DEFINE GDG (                                             -            00090002
+              NAME(TECN020.PROJ.MASTER.CUSTOMER.GDG)     -              00091003
+              LIMIT(15) -                                               00100000
+              NOEMPTY -                                                 00110000
+              SCRATCH )                                                 00120001
+  DEFINE GDG (                                           -              00130001
+              NAME(TECN020.PROJ.HISTORY.DATA.GDG) -                     00131002
+              LIMIT(15) -                                               00140001
+               NOEMPTY -                                                00150001
+               SCRATCH )                                                00160001
+/*                                                                      00170001
+
